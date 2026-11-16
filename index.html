@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Pendidikan - Rahmat Hidayat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+    <!-- Memuat sql.js dari CDN (WebAssembly SQLite) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Daftar Riwayat Pendidikan</h2>
+        <p style="text-align: center; color: #666;">Data dimuat dari database SQLite (`riwayat_pendidikan.db`) via WebAssembly.</p>
+
+        <table id="tabel-riwayat">
+            <thead>
+                <tr>
+                    <th>Nama Sekolah</th>
+                    <th>Tahun Masuk</th>
+                    <th>Tahun Lulus</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td colspan="4" class="loading">Memuat database...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function loadDatabase() {
+            try {
+                // Inisialisasi modul sql.js dan arahkan file wasm ke CDN resminya
+                const SQL = await initSqlJs({
+                    locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+                });
+
+                // Ambil file database .db menggunakan fetch
+                const response = await fetch('riwayat_pendidikan.db');
+                if (!response.ok) throw new Error("File database tidak ditemukan!");
+                
+                const buffer = await response.arrayBuffer();
+                const db = new SQL.Database(new Uint8Array(buffer));
+
+                // Lakukan query ke tabel riwayat
+                const res = db.exec("SELECT nama_sekolah, tahun_masuk, tahun_lulus, keterangan FROM riwayat;");
+                
+                const tbody = document.querySelector('#tabel-riwayat tbody');
+                tbody.innerHTML = ''; // Kosongkan teks loading
+
+                if (res.length > 0) {
+                    const rows = res[0].values;
+                    rows.forEach(row => {
+                        const tr = document.createElement('tr');
+                        row.forEach(text => {
+                            const td = document.createElement('td');
+                            td.textContent = text;
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Tidak ada data di dalam tabel.</td></tr>';
+                }
+
+            } catch (err) {
+                console.error("Gagal memuat database:", err);
+                document.querySelector('#tabel-riwayat tbody').innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">Gagal memuat database: ${err.message}</td></tr>`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadDatabase);
+    </script>
+</body>
+</html>
