@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Pendidikan</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f4f6f9; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #3498db; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+    <!-- Memanggil file JS lokal -->
+    <script src="./sql-wasm.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Daftar Riwayat Pendidikan</h2>
+
+        <table id="tabel-riwayat">
+            <thead>
+                <tr>
+                    <th>Nama Sekolah</th>
+                    <th>Tahun Masuk</th>
+                    <th>Tahun Lulus</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td colspan="4" style="text-align: center;">Memuat data...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function loadDatabase() {
+            try {
+                // Memanggil file WASM lokal di folder yang sama
+                const SQL = await initSqlJs({
+                    locateFile: file => `./${file}`
+                });
+
+                const response = await fetch('./riwayat_pendidikan.db');
+                if (!response.ok) throw new Error("File database tidak ditemukan!");
+                
+                const buffer = await response.arrayBuffer();
+                const db = new SQL.Database(new Uint8Array(buffer));
+
+                const res = db.exec("SELECT nama_sekolah, tahun_masuk, tahun_lulus, keterangan FROM riwayat;");
+                
+                const tbody = document.querySelector('#tabel-riwayat tbody');
+                tbody.innerHTML = '';
+
+                if (res.length > 0) {
+                    res[0].values.forEach(row => {
+                        const tr = document.createElement('tr');
+                        row.forEach(text => {
+                            const td = document.createElement('td');
+                            td.textContent = text;
+                            tr.appendChild(td);
+                        });
+                        tbody.appendChild(tr);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Data kosong.</td></tr>';
+                }
+            } catch (err) {
+                console.error(err);
+                document.querySelector('#tabel-riwayat tbody').innerHTML = `<tr><td colspan="4" style="text-align: center; color: red;">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', loadDatabase);
+    </script>
+</body>
+</html>
